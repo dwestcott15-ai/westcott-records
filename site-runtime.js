@@ -18,6 +18,8 @@
   const gm = location.hash.match(/^#guest-(.+)$/);
   if (gm) { try { localStorage.setItem('wr-guest', decodeURIComponent(gm[1])); } catch (e) {} history.replaceState(null, '', location.pathname + location.search); }
   try { guestKey = localStorage.getItem('wr-guest'); } catch (e) {}
+  // an owner/guest/signout link opened into an already-loaded tab only changes the hash; reload so the key is picked up
+  window.addEventListener('hashchange', () => { if (/^#(owner-|guest-|signout$)/.test(location.hash)) location.reload(); });
   const hdrs = () => (ownerKey ? { 'x-owner-key': ownerKey } : guestKey ? { 'x-guest-key': guestKey } : {});
 
   if (!window.supabase) { console.warn('supabase-js did not load; the site runs read-only'); return; }
