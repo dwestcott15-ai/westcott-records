@@ -105,8 +105,10 @@
       id, path,
       async get() { const { data, error } = await sb.from('docs').select('id,data').eq('coll', coll).eq('id', id).maybeSingle(); if (error) throw mapErr(error); return data ? docSnap(data) : { id, exists: false, data: () => undefined }; },
       async set(body) {
-        if (path === 'state/pull' && !ownerVerified) { const { error } = await sb.rpc('pull_request', { rids: Array.isArray(body.items) ? body.items : [] }); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); return; }
-        const { error } = await sb.from('docs').upsert({ coll, id, data: body, updated_at: new Date().toISOString() }, { onConflict: 'coll,id' }); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
+        let { error } = await sb.from('docs').upsert({ coll, id, data: body, updated_at: new Date().toISOString() }, { onConflict: 'coll,id' });
+        // guests manage the pull list once setup3.sql is in; before that, fall back to the append-only request
+        if (error && path === 'state/pull' && !ownerVerified) ({ error } = await sb.rpc('pull_request', { rids: Array.isArray(body.items) ? body.items : [] }));
+        if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
       async update(partial) { const cur = await ref.get(); await ref.set({ ...(cur.exists ? cur.data() : {}), ...partial }); },
       async delete() { const { error } = await sb.from('docs').delete().eq('coll', coll).eq('id', id); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
       collection(sub) { return collection(path + '/' + sub); },

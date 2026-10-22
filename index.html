@@ -1278,7 +1278,7 @@ function open(idx, list) {
       ${hearRow(r, 'Hear it')}
       ${r.n ? `<p class="note">${esc(r.n)}</p>` : ''}
       ${r.isNew ? `<p class="note">Added from the page. ${DJ_NAME} drafted the details from ${r.src === 'photo' ? 'a photo of the sleeve' : 'the name'}; they haven't been checked against a reference yet.</p>` : ''}
-      ${dbNs ? `<div class="playrow" id="playrow">${canWrite ? `<button class="toggle" type="button" id="playbtn" data-rid="${rid(r)}" ${recentlyLogged(r) ? 'disabled aria-pressed="true"' : ''}>${recentlyLogged(r) ? 'Logged' : playBtnLabel()}</button>` : ''}<span class="pstat" id="pstat">${esc(playLine(r))}</span>${canWrite && playInfo(r)?.n ? `<button class="undo" type="button" id="unlogbtn" title="Remove the most recent spin">Remove a spin</button>` : ''}${canWrite ? `<span style="flex-basis:100%"></span>${starsHtml(r)}<button class="toggle" type="button" id="pulladd" aria-pressed="${inPull(r)}">${inPull(r) ? 'On the pull list' : 'Add to pull list'}</button>` : canRequest ? `<span style="flex-basis:100%"></span><button class="toggle" type="button" id="pulladd" aria-pressed="${inPull(r)}" ${inPull(r) ? 'disabled' : ''}>${inPull(r) ? 'On the pull list' : 'Request it for tonight'}</button>` : ''}</div>` : ''}
+      ${dbNs ? `<div class="playrow" id="playrow">${canWrite ? `<button class="toggle" type="button" id="playbtn" data-rid="${rid(r)}" ${recentlyLogged(r) ? 'disabled aria-pressed="true"' : ''}>${recentlyLogged(r) ? 'Logged' : playBtnLabel()}</button>` : ''}<span class="pstat" id="pstat">${esc(playLine(r))}</span>${canWrite && playInfo(r)?.n ? `<button class="undo" type="button" id="unlogbtn" title="Remove the most recent spin">Remove a spin</button>` : ''}${canPull() ? `<span style="flex-basis:100%"></span>${canWrite ? starsHtml(r) : ''}<button class="toggle" type="button" id="pulladd" aria-pressed="${inPull(r)}">${inPull(r) ? 'On the pull list' : 'Add to pull list'}</button>` : ''}</div>` : ''}
       <p class="summary">${esc(r.s || '')}</p>
       ${tracks}
       ${r.isNew && dbNs ? `<div class="ownerrow"><button class="toggle" type="button" data-edit="${esc(r.docId)}">Edit details</button><button class="toggle" type="button" data-remove="${esc(r.docId)}">Remove from crate</button></div>` : ''}
@@ -1308,7 +1308,8 @@ async function unlogLast(r) {
   plays[id] = prev.n ? prev : undefined;
 }
 let canWrite = true;   // flipped off if the viewer can't write shared data
-let canRequest = false; // guests with the house password may add to the pull list (never edit it)
+let canRequest = false; // guests with the house password run the pull list too (everything but logging, rating and adding records)
+const canPull = () => canWrite || canRequest;
 // one write path for every "played it": the per-record tally plus a shared "now" pointer that TV screens follow
 async function recordPlay(r) {
   const id = rid(r); const now = new Date().toISOString();
@@ -1640,14 +1641,14 @@ async function savePull() { if (!dbNs) return; try { await dbNs.doc('state/pull'
 async function togglePull(r) {
   try {
     const id = rid(r);
-    if (pull.items.includes(id)) { if (!canWrite) return; pull.items = pull.items.filter(x => x !== id); pull.done = pull.done.filter(x => x !== id); } else pull.items.push(id);
+    if (pull.items.includes(id)) { pull.items = pull.items.filter(x => x !== id); pull.done = pull.done.filter(x => x !== id); } else pull.items.push(id);
     renderPullBits(); await savePull();
   } catch (e) { const st = $('#pstat'); if (st) st.textContent = `Pull list: ${e?.name || 'error'} ${e?.message || e}`; }
 }
 function renderPullBits() {
   const n = pull.items.length;
   $('#pulllabel').textContent = n ? `Pull · ${n}` : 'Pull';
-  const b = $('#pulladd'); if (b && nav[cur]) { const on = inPull(nav[cur]); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'On the pull list' : canWrite ? 'Add to pull list' : 'Request it for tonight'; if (!canWrite) b.disabled = on; }
+  const b = $('#pulladd'); if (b && nav[cur]) { const on = inPull(nav[cur]); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'On the pull list' : 'Add to pull list'; }
   if (pulldlg.open) showPull();
 }
 const pullRecords = () => pull.items.map(id => DATA.find(r => rid(r) === id)).filter(Boolean);
@@ -1658,7 +1659,7 @@ pulldlg.addEventListener('click', async (e) => {
   if (e.target === pulldlg) { pulldlg.close(); return; }
   const b = e.target.closest('button[data-op]'); if (!b) return;
   const op = b.dataset.op, id = b.dataset.rid, i = pull.items.indexOf(id);
-  if (!canWrite && op !== 'open') return;
+  if (!canPull() && op !== 'open') return;
   if (op === 'up' && i > 0) { [pull.items[i - 1], pull.items[i]] = [pull.items[i], pull.items[i - 1]]; }
   if (op === 'down' && i >= 0 && i < pull.items.length - 1) { [pull.items[i + 1], pull.items[i]] = [pull.items[i], pull.items[i + 1]]; }
   if (op === 'remove') { pull.items = pull.items.filter(x => x !== id); pull.done = pull.done.filter(x => x !== id); }
@@ -1674,11 +1675,11 @@ function showPull() {
   const mins = recs.reduce((s, r) => s + (r.len || 0), 0);
   $('#pullbody').innerHTML = `
     <h2 class="addh">Tonight's pull</h2>
-    <p class="djblurb">${canWrite ? `Records you've pulled for the evening, in play order. Start it and the Now Playing screen walks through them; each "Played it" ticks one off.` : `What's lined up for tonight. Open any record in the crate and tap "Request it for tonight" to add one; the host decides the order.`}</p>
-    ${recs.length && canWrite ? `<div class="pullrow"><button class="djgo" type="button" data-op="start">Start the evening</button><button class="toggle" type="button" data-op="shuffle">Shuffle</button><button class="toggle" type="button" data-op="clear">Clear</button><span class="pulltotal">${recs.length} record${recs.length > 1 ? 's' : ''}${mins ? ` · about ${Math.round(mins)} min` : ''}</span></div>
+    <p class="djblurb">${canWrite ? `Records you've pulled for the evening, in play order. Start it and the Now Playing screen walks through them; each "Played it" ticks one off.` : `Records pulled for the evening, in play order. Open any record and tap "Add to pull list" to put it in; drag the arrows to reorder.`}</p>
+    ${recs.length && canPull() ? `<div class="pullrow"><button class="djgo" type="button" data-op="start">Start the evening</button><button class="toggle" type="button" data-op="shuffle">Shuffle</button><button class="toggle" type="button" data-op="clear">Clear</button><span class="pulltotal">${recs.length} record${recs.length > 1 ? 's' : ''}${mins ? ` · about ${Math.round(mins)} min` : ''}</span></div>
     <ol class="pulllist">${recs.map((r, i) => `<li class="${pull.done.includes(rid(r)) ? 'done' : ''}"><span class="n">${i + 1}</span>${sleeve(r, 'sleeve')}<span><span class="pt">${esc(r.t)}</span><br><span class="pa">${esc(r.a)} · ${r.y || ''}${pull.done.includes(rid(r)) ? ' · played' : ''}</span></span>
-      <span class="ops">${canWrite ? `<button class="ib" type="button" data-op="up" data-rid="${esc(rid(r))}" aria-label="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 14 6-6 6 6"/></svg></button><button class="ib" type="button" data-op="down" data-rid="${esc(rid(r))}" aria-label="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 10 6 6 6-6"/></svg></button><button class="ib" type="button" data-op="open" data-rid="${esc(rid(r))}" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><button class="ib" type="button" data-op="remove" data-rid="${esc(rid(r))}" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : `<button class="ib" type="button" data-op="open" data-rid="${esc(rid(r))}" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`}</span></li>`).join('')}</ol>`
-    : canWrite ? `<p class="djstatus">Nothing pulled yet. Open a record and tap "Add to pull list", or let ${DJ_NAME} build one.</p><div class="pullrow" style="margin-top:12px"><button class="toggle" type="button" data-op="dj">Ask ${DJ_NAME} for a set</button></div>` : `<p class="djstatus">Nothing lined up yet. Open a record and tap "Request it for tonight".</p>`}`;
+      <span class="ops">${canPull() ? `<button class="ib" type="button" data-op="up" data-rid="${esc(rid(r))}" aria-label="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 14 6-6 6 6"/></svg></button><button class="ib" type="button" data-op="down" data-rid="${esc(rid(r))}" aria-label="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 10 6 6 6-6"/></svg></button><button class="ib" type="button" data-op="open" data-rid="${esc(rid(r))}" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><button class="ib" type="button" data-op="remove" data-rid="${esc(rid(r))}" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : `<button class="ib" type="button" data-op="open" data-rid="${esc(rid(r))}" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`}</span></li>`).join('')}</ol>`
+    : canPull() ? `<p class="djstatus">Nothing pulled yet. Open a record and tap "Add to pull list", or let ${DJ_NAME} build one.</p><div class="pullrow" style="margin-top:12px"><button class="toggle" type="button" data-op="dj">Ask ${DJ_NAME} for a set</button></div>` : `<p class="djstatus">Nothing lined up yet.</p>`}`;
   if (!pulldlg.open) pulldlg.showModal();
 }
 
@@ -1850,7 +1851,7 @@ Reply with only a JSON array of exactly ${n} object${many ? 's, in play order' :
     </div>`).join('');
     const NUMWORD = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
     status.textContent = `${NUMWORD[picks.length] || picks.length} for "${vibe}"${picks.length > 1 ? ', in play order' : ''}.`;
-    $('#djpull').hidden = !(dbNs && canWrite);
+    $('#djpull').hidden = !(dbNs && canPull());
     $('#djmore').hidden = false;
   } catch (e) {
     if (e?.code === 'cancelled') { status.textContent = ''; }
@@ -1935,7 +1936,7 @@ function applyNewRows(rows) {
   // private notes live at data/users/<uid>/<rid> (an even-length document path; that subtree is readable only by its owner)
   try { if (uid) dbNs.collection(`data/users/${uid}`).onSnapshot((snap) => { for (const k of Object.keys(myNotes)) delete myNotes[k]; snap.docs.forEach(d => { if (d.exists) myNotes[d.id] = d.data(); }); }, (e) => {}); } catch (e) { console.warn("notes subscription", e); }
   dbNs.collection('ratings').onSnapshot((snap) => { for (const k of Object.keys(ratings)) delete ratings[k]; snap.docs.forEach(d => { if (d.exists) ratings[d.id] = d.data(); }); if (state.sort === 'rating' || state.faves || true) render(); }, (e) => {});
-  $('#pullbtn').hidden = isGuest() || !(canWrite || canRequest);
+  $('#pullbtn').hidden = isGuest() || !canPull();
   $('#addbtn').hidden = isGuest() || !canWrite || !sampleFn;
   dbNs.doc('state/pull').onSnapshot((snap) => { const d = snap.exists ? snap.data() : null; pull = { items: Array.isArray(d?.items) ? [...d.items] : [], done: Array.isArray(d?.done) ? [...d.done] : [] }; /* copies: snapshot data is frozen */ renderPullBits(); }, (e) => {});
   // the shared "now" pointer: what was logged most recently, from any device
