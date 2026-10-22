@@ -1,0 +1,122 @@
+/* westcottrecords.com runtime: gives the catalog page the same window.claude API it has on claude.ai,
+   backed by Supabase (database + storage) and a small edge function that relays DJ to Anthropic.
+   Nothing here is secret: the publishable key is public by design; the owner key lives only in the
+   owner's own browser (saved from the private #owner-... link) and is sent as a header on each call. */
+(() => {
+  const SUPA_URL = 'https://sioplmppjfgkexrbxmca.supabase.co';
+  const SUPA_KEY = 'sb_publishable_dhrcm8eAKsILEOWhviA-aA_XFlF9tjI';
+  const BUCKET = 'covers';
+
+  // ---- owner key: #owner-<key> on the link stores it on this device, then is removed from the address bar
+  let ownerKey = null;
+  const om = location.hash.match(/^#owner-([A-Za-z0-9_-]{16,})$/);
+  if (om) { try { localStorage.setItem('wr-owner', om[1]); } catch (e) {} history.replaceState(null, '', location.pathname + location.search); }
+  if (location.hash === '#signout') { try { localStorage.removeItem('wr-owner'); } catch (e) {} history.replaceState(null, '', location.pathname); }
+  try { ownerKey = localStorage.getItem('wr-owner'); } catch (e) {}
+  const hdrs = () => (ownerKey ? { 'x-owner-key': ownerKey } : {});
+
+  if (!window.supabase) { console.warn('supabase-js did not load; the site runs read-only'); return; }
+  const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, { global: { headers: hdrs() }, realtime: { params: { eventsPerSecond: 5 } } });
+
+  let ownerVerified = null;
+  async function verifyOwner() {
+    if (ownerVerified !== null) return ownerVerified;
+    if (!ownerKey) return (ownerVerified = false);
+    try { const { data, error } = await sb.rpc('check_owner', { key: ownerKey }); ownerVerified = !error && data === true; }
+    catch (e) { ownerVerified = false; }
+    if (!ownerVerified) { try { localStorage.removeItem('wr-owner'); } catch (e) {} ownerKey = null; }
+    return ownerVerified;
+  }
+
+  const err = (code, msg) => { const e = new Error(msg || code); e.code = code; return e; };
+  const mapErr = (e) => { const s = e?.code || e?.status; if (s === 'PGRST301' || s === '42501' || s === 401 || s === 403) return err('permission_denied', e.message); return err('invalid_argument', e?.message || String(e)); };
+  const mint = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+  // ---- docs table: one row per document, keyed by (coll, id); data is the document body
+  const docSnap = (row) => ({ id: row.id, exists: true, data: () => row.data, metadata: {} });
+  const collSnap = (rows) => ({ docs: rows.map(docSnap), size: rows.length, empty: !rows.length, docChanges: () => [], metadata: {} });
+  const listeners = new Set();   // {coll, id?, fn, order}
+  let channel = null, pollTimer = null;
+  function wake() {
+    if (channel) return;
+    channel = sb.channel('docs-live').on('postgres_changes', { event: '*', schema: 'public', table: 'docs' }, (payload) => {
+      const coll = payload.new?.coll || payload.old?.coll; if (!coll) return;
+      listeners.forEach(l => { if (l.coll === coll) l.refresh(); });
+    }).subscribe((status) => { if (status !== 'SUBSCRIBED' && !pollTimer) pollTimer = setInterval(() => listeners.forEach(l => l.refresh()), 20000); });
+  }
+  async function fetchColl(coll, order) {
+    let q = sb.from('docs').select('id,data').eq('coll', coll);
+    const { data, error } = await q; if (error) throw mapErr(error);
+    const rows = data || [];
+    if (order) rows.sort((a, b) => { const x = a.data?.[order] ?? '', y = b.data?.[order] ?? ''; return x < y ? -1 : x > y ? 1 : 0; });
+    return rows;
+  }
+  function collection(coll) {
+    let order = null;
+    const api = {
+      orderBy(f) { order = f; return api; }, where() { return api; }, limit() { return api; },
+      doc(id) { return doc(coll + '/' + (id || mint())); },
+      async add(body) { const r = doc(coll + '/' + mint()); await r.set(body); return r; },
+      async get() { return collSnap(await fetchColl(coll, order)); },
+      onSnapshot(fn, onErr) {
+        const l = { coll, refresh: async () => { try { fn(collSnap(await fetchColl(coll, order))); } catch (e) { onErr?.(e); } } };
+        listeners.add(l); l.refresh(); wake();
+        return () => listeners.delete(l);
+      },
+    };
+    return api;
+  }
+  function doc(path) {
+    const parts = path.split('/'); const id = parts.pop(); const coll = parts.join('/');
+    const ref = {
+      id, path,
+      async get() { const { data, error } = await sb.from('docs').select('id,data').eq('coll', coll).eq('id', id).maybeSingle(); if (error) throw mapErr(error); return data ? docSnap(data) : { id, exists: false, data: () => undefined }; },
+      async set(body) { const { error } = await sb.from('docs').upsert({ coll, id, data: body, updated_at: new Date().toISOString() }, { onConflict: 'coll,id' }); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
+      async update(partial) { const cur = await ref.get(); await ref.set({ ...(cur.exists ? cur.data() : {}), ...partial }); },
+      async delete() { const { error } = await sb.from('docs').delete().eq('coll', coll).eq('id', id); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
+      collection(sub) { return collection(path + '/' + sub); },
+      onSnapshot(fn, onErr) {
+        const l = { coll, refresh: async () => { try { fn(await ref.get()); } catch (e) { onErr?.(e); } } };
+        listeners.add(l); l.refresh(); wake();
+        return () => listeners.delete(l);
+      },
+    };
+    return ref;
+  }
+  const db = { collection, doc };
+
+  // ---- DJ: the edge function holds the Anthropic key and relays the request
+  async function callDj(body, signal) {
+    const r = await fetch(SUPA_URL + '/functions/v1/dj', { method: 'POST', signal, headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY, ...hdrs() }, body: JSON.stringify(body) });
+    let out = null; try { out = await r.json(); } catch (e) {}
+    if (!r.ok) { const code = out?.error || (r.status === 429 ? 'rate_limited' : r.status === 402 || r.status === 503 ? 'sampling_disabled' : 'unknown'); throw err(code, out?.message || `DJ relay returned ${r.status}`); }
+    return out;
+  }
+  const toB64 = (blob) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+  async function packImages(images) { const out = []; for (const b of images || []) out.push({ data: await toB64(b), mediaType: b.type || 'image/jpeg' }); return out; }
+  const sample = async (input, opts = {}) => {
+    try {
+      const out = await callDj({ input, json: false, modelTier: opts.modelTier || 'quick', images: await packImages(opts.images) }, opts.signal);
+      if (opts.onText) opts.onText({ text: out.text, delta: out.text });
+      return { text: out.text, truncated: false };
+    } catch (e) { if (e.name === 'AbortError') throw err('cancelled'); throw e; }
+  };
+  sample.json = async (input, opts = {}) => {
+    try { const out = await callDj({ input, json: true, modelTier: opts.modelTier || 'quick', images: await packImages(opts.images) }, opts.signal); return out.json; }
+    catch (e) { if (e.name === 'AbortError') throw err('cancelled'); throw e; }
+  };
+  sample.limits = async () => ({ maxPromptBytes: 400000, images: { maxCount: 1, maxInputBytes: 5e6, mediaTypes: ['image/jpeg', 'image/png', 'image/webp'] } });
+
+  // ---- sleeve photos: uploaded through the relay (which checks the owner key) into public storage
+  const assets = {
+    async upload(blob, meta = {}) { const out = await callDj({ op: 'upload', data: await toB64(blob), type: meta.type || blob.type || 'image/jpeg' }); return { id: out.id, url: out.url }; },
+    async delete(id) { await callDj({ op: 'delete', id }); return { deleted: true }; },
+  };
+  window.__blobUrl = (id) => /^https?:/.test(id) ? id : `${SUPA_URL}/storage/v1/object/public/${BUCKET}/${id}`;
+
+  const user = { can: async (perm) => perm === 'data.write' ? await verifyOwner() : true, id: async () => (await verifyOwner()) ? 'owner' : null, isOwner: () => !!ownerVerified, canEdit: () => !!ownerVerified };
+  const downloads = { save: async ({ filename, data }) => { const blob = data instanceof Blob ? data : new Blob([data], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); return { status: 'saved' }; } };
+
+  window.claude = { use: async (name) => ({ db, sample, assets, user, downloads })[name] || null };
+  window.__wr = { signOut() { try { localStorage.removeItem('wr-owner'); } catch (e) {} location.reload(); } };
+})();
