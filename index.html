@@ -432,6 +432,32 @@ h1 { font-family: var(--display); font-weight: 700; font-size: clamp(38px, 6vw, 
 .ph .disc { position: absolute; right: -28%; bottom: -28%; width: 80%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0 18%, var(--fg) 19% 21%, transparent 22%), repeating-radial-gradient(circle, #1a1a1a 0 2px, #262626 2px 4px); opacity: .9; }
 .badge { position: absolute; top: 8px; left: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 6px; border-radius: 2px; background: var(--live); color: #fff; }
 .badge.ed { background: var(--fg); color: var(--inverse); left: auto; right: 8px; }
+.badge.box { top: auto; bottom: 8px; left: auto; right: 8px; background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.tag.box { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+/* shelving mode: tap a card to drop it in the chosen box instead of opening it */
+:root.shelving .card { cursor: copy; }
+:root.shelving .card .sleeve { opacity: .55; transition: opacity .15s, outline-color .15s; outline: 3px solid transparent; outline-offset: 2px; }
+:root.shelving .card.inbox .sleeve { opacity: 1; outline-color: var(--accent); }
+:root.shelving .grid { padding-bottom: 110px; }
+.shelfbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--fg); color: var(--inverse); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); box-shadow: 0 -8px 24px rgba(0,0,0,.25); }
+.shelfbar .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .75; }
+.shelfbar select { font: inherit; font-weight: 600; font-size: 15px; padding: 7px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,.3); background: transparent; color: inherit; }
+.shelfbar .n { font-family: var(--mono); font-size: 13px; opacity: .85; }
+.shelfbar .done { margin-left: auto; font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 6px; border: 0; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
+.boxrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; }
+.boxrow .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.boxbtn { min-width: 34px; height: 32px; padding: 0 9px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; }
+.boxbtn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.boxlist { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.boxlist li { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.boxlist .num { font-family: var(--display); font-size: 26px; line-height: 1; text-transform: uppercase; }
+.boxlist .num small { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--muted); }
+.boxlist input { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); width: 100%; min-width: 0; }
+.boxlist .nm { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boxlist .nm small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.boxlist .ops { display: flex; gap: 6px; }
+.boxlist.guest li { grid-template-columns: 56px minmax(0, 1fr) auto; }
+@media (max-width: 520px) { .boxlist li { grid-template-columns: 48px minmax(0, 1fr); } .boxlist .ops { grid-column: 1 / -1; } }
 .meta { min-width: 0; }
 .meta .t { font-family: var(--display); font-weight: 600; font-size: 19px; line-height: 1.05; text-transform: uppercase; overflow-wrap: anywhere; }
 .meta .a { font-size: 13.5px; margin-top: 2px; overflow-wrap: anywhere; }
@@ -556,6 +582,19 @@ dialog::backdrop { background: rgba(10, 10, 12, .62); }
 .logstats b { display: block; font-family: var(--display); font-size: 30px; line-height: 1; }
 .logstats span { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .logcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.stackrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 18px; }
+.stackrow .addphoto { min-height: 0; padding: 10px 14px; flex: 1 1 260px; }
+.stackrow .addphoto svg { width: 26px; height: 26px; }
+.stack { list-style: none; margin: 14px 0 0; padding: 0; }
+.stack li { display: grid; grid-template-columns: 26px 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.stack li.miss { opacity: .6; }
+.stack .sleeve { width: 44px; box-shadow: none; } .stack .sleeve .ph .t, .stack .sleeve .ph .a { display: none; }
+.stack input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+.stack .lt { font-weight: 600; font-size: 14px; } .stack .la { font-size: 12.5px; color: var(--muted); }
+.stack .pick { font-size: 12.5px; }
+.stackwhen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px; }
+.stackwhen input { font: inherit; font-size: 15px; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--field); color: var(--fg); }
+.stackwhen .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 @media (max-width: 720px) { .logcols { grid-template-columns: 1fr; } }
 .logcols h3 { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 500; }
 .loglist { list-style: none; margin: 0; padding: 0; }
@@ -853,6 +892,9 @@ dialog::backdrop { background: rgba(10, 10, 12, .62); }
       <option value="played">Sort: Recently played</option>
       <option value="dust">Sort: Gathering dust</option>
     </select>
+    <select class="sel" id="boxsel" aria-label="Box" hidden>
+      <option value="">Any box</option>
+    </select>
     <button class="toggle" id="live" aria-pressed="false" type="button">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 12v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="12" width="4" height="7" rx="1"/><rect x="17" y="12" width="4" height="7" rx="1"/></svg>
       Live only
@@ -890,6 +932,10 @@ dialog::backdrop { background: rgba(10, 10, 12, .62); }
     <button class="act add" id="wantbtn" type="button" hidden title="Records you're hunting for">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg>
       <span id="wantlabel">Want</span>
+    </button>
+    <button class="act add" id="boxesbtn" type="button" hidden title="Which box each record lives in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg>
+      <span id="boxeslabel">Boxes</span>
     </button>
     <button class="act add" id="logbtn" type="button" hidden title="Listening log">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -1064,6 +1110,17 @@ dialog::backdrop { background: rgba(10, 10, 12, .62); }
   </div>
 </dialog>
 
+<dialog id="boxdlg" aria-label="Boxes">
+  <div class="nav"><span class="pos">Boxes</span><div class="btns"><button class="ib" id="closeboxes" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
+  <div class="djpanel" id="boxbody"></div>
+</dialog>
+<div class="shelfbar" id="shelfbar" hidden>
+  <span class="lbl">Shelving into</span>
+  <select id="shelfsel" aria-label="Box being filled"></select>
+  <span class="n" id="shelfn"></span>
+  <span class="n">Tap a cover to put it in. Tap again to take it out.</span>
+  <button class="done" id="shelfdone" type="button">Done</button>
+</div>
 <dialog id="pulldlg" aria-label="Tonight's pull list">
   <div class="nav"><span class="pos">Pull list</span><div class="btns"><button class="ib" id="closepull" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
   <div class="djpanel" id="pullbody"></div>
@@ -1095,7 +1152,13 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&l
 const sortName = (a) => a.replace(/^(the|a)\s+/i, '').toLowerCase();
 const decade = (y) => y ? Math.floor(y / 10) * 10 : null;
 
-const state = { q: '', genre: [], decade: '', live: false, faves: false, doubles: false, sort: 'artist', view: 'grid', look: '', djTier: 'quick' };
+// ---- boxes: which physical crate each record lives in (declared early; render() reads them) ----
+const BOX_COUNT = 10;
+let boxes = { map: {}, names: {} };
+let shelving = 0;   // box number being filled in shelving mode, 0 when off
+const boxOf = (r) => boxes.map[rid(r)] || 0;
+const boxLabel = (n) => boxes.names[n] ? `Box ${n} · ${boxes.names[n]}` : `Box ${n}`;
+const state = { q: '', genre: [], decade: '', box: '', live: false, faves: false, doubles: false, sort: 'artist', view: 'grid', look: '', djTier: 'quick' };
 try { Object.assign(state, JSON.parse(localStorage.getItem('crate-state') || '{}')); } catch (e) {}
 state.faves = false; state.doubles = false; if (state.sort === 'rating') state.sort = 'artist';  // retired controls (ratings themselves are kept)
 if (!Array.isArray(state.genre)) state.genre = state.genre ? [state.genre] : [];  // genres are multi-select now
@@ -1153,6 +1216,7 @@ function filtered() {
     (!state.genre.length || state.genre.includes(r.g)) &&
     (!state.decade || decade(r.y) === Number(state.decade)) &&
     (!state.live || r.l) &&
+    (!state.box || (state.box === 'none' ? !boxOf(r) : boxOf(r) === Number(state.box))) &&
     (!state.faves || ratingOf(r) >= 4) &&
     (!state.doubles || r.copies > 1) &&
     (!q || searchKey(r).includes(q))
@@ -1175,9 +1239,12 @@ const plays = {};   // rid -> {n, last, h}
 const rid = (r) => r.docId ? 'n' + r.docId : 'r' + r.i;
 const playInfo = (r) => plays[rid(r)];
 const lastPlayed = (r) => { const p = playInfo(r); return p?.last ? Date.parse(p.last) || 0 : 0; };
+// calendar days in the viewer's own time zone, so a 9 pm spin reads "yesterday" the next morning, not "today"
+const dayKey = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const daysAgo = (iso) => { const a = new Date(iso), b = new Date(); return Math.round((new Date(b.getFullYear(), b.getMonth(), b.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5); };
 const ago = (iso) => {
-  const d = (Date.now() - Date.parse(iso)) / 864e5;
-  if (d < 1) return 'today'; if (d < 2) return 'yesterday'; if (d < 14) return `${Math.floor(d)} days ago`;
+  const d = daysAgo(iso);
+  if (d <= 0) return 'today'; if (d === 1) return 'yesterday'; if (d < 14) return `${d} days ago`;
   if (d < 60) return `${Math.floor(d / 7)} weeks ago`; if (d < 365) return `${Math.floor(d / 30)} months ago`;
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 };
@@ -1189,7 +1256,7 @@ function sleeve(r, cls) {
   const first = r.c[0];
   const ph = `<div class="ph"><div class="t">${esc(r.t)}</div><div class="a">${esc(r.a)}</div><div class="disc"></div></div>`;
   const img = first ? `<img src="${esc(first)}" alt="" loading="lazy" decoding="async" data-i="${r.i}" data-n="0">` : ph;
-  const badges = (r.isNew ? `<span class="badge new">New</span>` : '') + (r.l ? `<span class="badge">Live</span>` : '') + (r.ed ? `<span class="badge ed">${esc(r.ed)}</span>` : '') + (state.doubles && r.copies > 1 ? `<span class="badge dbl">${r.copy}/${r.copies}</span>` : '');
+  const badges = (r.isNew ? `<span class="badge new">New</span>` : '') + (r.l ? `<span class="badge">Live</span>` : '') + (r.ed ? `<span class="badge ed">${esc(r.ed)}</span>` : '') + (state.doubles && r.copies > 1 ? `<span class="badge dbl">${r.copy}/${r.copies}</span>` : '') + (boxOf(r) ? `<span class="badge box">Box ${boxOf(r)}</span>` : '');
   return `<div class="${cls}">${img}${badges}</div>`;
 }
 function onImgError(e) {
@@ -1239,7 +1306,8 @@ function render() {
     }).join('') + `<div class="shelfkey" style="flex-basis:100%">Spines take their color from the sleeve. Filed by ${({ artist: 'artist', title: 'title', year: 'year', yeardesc: 'year, newest first', genre: 'genre', played: 'most recently played', dust: 'longest since played' })[state.sort] || 'artist'}. Tap one to pull it.</div>`;
     return;
   }
-  grid.innerHTML = current.map((r, idx) => `<button class="card" type="button" data-idx="${idx}">
+  $('#boxsel').value = state.box;
+  grid.innerHTML = current.map((r, idx) => `<button class="card${shelving && boxOf(r) === shelving ? ' inbox' : ''}" type="button" data-idx="${idx}">
     ${sleeve(r, 'sleeve')}
     <div class="meta"><div class="t">${esc(r.t)}</div><div class="a">${esc(r.a)}</div><div class="y">${r.y || '—'} · ${esc(r.g)}${r.l ? ' · Live' : ''}${r.copies > 1 ? ` · copy ${r.copy} of ${r.copies}` : ''}${state.sort === 'played' || state.sort === 'dust' ? ` · ${playLine(r).toLowerCase()}` : ''}</div>${ratingOf(r) ? `<div class="rt">${'★'.repeat(ratingOf(r))}${'☆'.repeat(5 - ratingOf(r))}</div>` : ''}</div>
   </button>`).join('');
@@ -1249,7 +1317,7 @@ function inkFor(hex) {   // black or white text on a spine color
   const n = parseInt(hex.slice(1), 16); const r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
   const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; return lum > 0.55 ? '#111111' : '#f5f2ea';
 }
-$('#grid').addEventListener('click', (e) => { const c = e.target.closest('.card, .spine, .tcol button'); if (c) open(Number(c.dataset.idx), current); });
+$('#grid').addEventListener('click', (e) => { const c = e.target.closest('.card, .spine, .tcol button'); if (!c) return; const r = current[Number(c.dataset.idx)]; if (shelving && r) { setBox(r, boxOf(r) === shelving ? 0 : shelving); return; } open(Number(c.dataset.idx), current); });
 $('#vtime').addEventListener('click', () => { state.view = 'timeline'; render(); });
 $('#vshelf').addEventListener('click', () => { state.view = 'shelf'; render(); });
 
@@ -1274,13 +1342,14 @@ function open(idx, list) {
     <div class="text">
       <h2>${esc(r.t)}</h2>
       <p class="artist">${esc(r.a)}</p>
-      <div class="tags"><span class="tag year">${r.y || 'year unknown'}</span><span class="tag">${esc(r.g)}</span>${r.l ? '<span class="tag live">Live</span>' : ''}${r.ed ? `<span class="tag ed">${esc(r.ed)}</span>` : ''}${r.isNew ? `<span class="tag new">New · ${esc(r.addedLabel)}</span>` : ''}${r.copies > 1 ? `<span class="tag">copy ${r.copy} of ${r.copies}</span>` : ''}</div>
+      <div class="tags"><span class="tag year">${r.y || 'year unknown'}</span><span class="tag">${esc(r.g)}</span>${r.l ? '<span class="tag live">Live</span>' : ''}${r.ed ? `<span class="tag ed">${esc(r.ed)}</span>` : ''}${boxOf(r) ? `<span class="tag box" id="boxtag">${esc(boxLabel(boxOf(r)))}</span>` : ''}${r.isNew ? `<span class="tag new">New · ${esc(r.addedLabel)}</span>` : ''}${r.copies > 1 ? `<span class="tag">copy ${r.copy} of ${r.copies}</span>` : ''}</div>
       ${hearRow(r, 'Hear it')}
       ${r.n ? `<p class="note">${esc(r.n)}</p>` : ''}
       ${r.isNew ? `<p class="note">Added from the page. ${DJ_NAME} drafted the details from ${r.src === 'photo' ? 'a photo of the sleeve' : 'the name'}; they haven't been checked against a reference yet.</p>` : ''}
       ${dbNs ? `<div class="playrow" id="playrow">${canWrite ? `<button class="toggle" type="button" id="playbtn" data-rid="${rid(r)}" ${recentlyLogged(r) ? 'disabled aria-pressed="true"' : ''}>${recentlyLogged(r) ? 'Logged' : playBtnLabel()}</button>` : ''}<span class="pstat" id="pstat">${esc(playLine(r))}</span>${canWrite && playInfo(r)?.n ? `<button class="undo" type="button" id="unlogbtn" title="Remove the most recent spin">Remove a spin</button>` : ''}${canPull() ? `<span style="flex-basis:100%"></span>${canWrite ? starsHtml(r) : ''}<button class="toggle" type="button" id="pulladd" aria-pressed="${inPull(r)}">${inPull(r) ? 'On the pull list' : 'Add to pull list'}</button>` : ''}</div>` : ''}
       <p class="summary">${esc(r.s || '')}</p>
       ${tracks}
+      ${dbNs && canWrite ? boxRowHtml(r) : ''}
       ${r.isNew && dbNs ? `<div class="ownerrow"><button class="toggle" type="button" data-edit="${esc(r.docId)}">Edit details</button><button class="toggle" type="button" data-remove="${esc(r.docId)}">Remove from crate</button></div>` : ''}
       ${uid ? notesHtml(r) : ''}
       ${sampleFn ? `<div class="liner" id="liner">
@@ -1321,6 +1390,80 @@ async function recordPlay(r) {
   if (pull.items.includes(id) && !pull.done.includes(id)) { pull.done.push(id); renderPullBits(); savePull(); }
   return body;
 }
+// back-dated spin (the stack logger): no one-per-hour gate, but skip if that record already has a spin within an hour of the time
+async function recordPlayAt(r, iso) {
+  const id = rid(r); const t = Date.parse(iso);
+  const p = plays[id] || { n: 0, last: null, h: [] };
+  const h = p.h || (p.last ? [p.last] : []);
+  if (h.some(x => Math.abs(Date.parse(x) - t) < LOG_GAP)) { const err = new Error('already'); err.code = 'already'; throw err; }
+  const nh = [...h, iso].sort().slice(-200);
+  const body = { n: p.n + 1, last: nh[nh.length - 1], h: nh, t: r.t, a: r.a };
+  await dbNs.doc('plays/' + id).set(body);
+  plays[id] = body;
+  if (pull.items.includes(id) && !pull.done.includes(id)) { pull.done.push(id); renderPullBits(); savePull(); }
+  return body;
+}
+// match a name the DJ read off a sleeve to a record in the crate (one entry per title, copies collapsed)
+function matchStack(artist, title) {
+  const n = searchNorm; const a = n(artist || ''), t = n(title || '');
+  const artistOk = (r) => !a || n(r.a).includes(a) || a.includes(n(r.a));
+  // exact title first, then the closest partial ("mccartney ii" must not land on "mccartney")
+  const score = (r) => { const rt = n(r.t); if (!t) return 0; if (rt === t) return 3; if (rt.includes(t) || t.includes(rt)) return 1 + Math.min(rt.length, t.length) / Math.max(rt.length, t.length); return 0; };
+  let hits = t ? DATA.filter(r => artistOk(r) && score(r) > 0) : [];
+  if (!hits.length && t) hits = DATA.filter(r => score(r) > 0);
+  if (!hits.length && a && !t) hits = DATA.filter(r => artistOk(r));
+  hits.sort((x, y) => score(y) - score(x) || (x.copy || 1) - (y.copy || 1));
+  return hits[0] || null;
+}
+let stack = [];   // [{ artist, title, r }]
+async function readStack(file) {
+  const body = $('#logbody');
+  body.innerHTML = `<h2 class="addh">Log a stack</h2><p class="djstatus">${DJ_NAME} is reading the sleeves…</p>`;
+  try {
+    const blob = await shrinkPhoto(file, 1600);
+    const prompt = `You are ${DJ_NAME}, a vinyl expert. The attached photo shows a stack or spread of LP records that were just played (sleeves, spines, or labels; they may overlap, be at an angle, or be partly hidden). List every distinct record you can identify. Reply with only a JSON array, up to 30 items, in the order they appear: [{"artist": "artist as credited", "title": "album title"}]. Skip anything you cannot read with reasonable confidence. If there are no records, reply [].`;
+    const out = await sampleFn.json(prompt, { modelTier: 'default', cache: false, images: [blob] });
+    const list = Array.isArray(out) ? out : Array.isArray(out?.records) ? out.records : [];
+    const seen = new Set();
+    stack = list.filter(x => x && (x.title || x.artist)).map(x => ({ artist: String(x.artist || ''), title: String(x.title || ''), r: matchStack(x.artist, x.title) }))
+      .filter(x => { const k = x.r ? rid(x.r) : (x.artist + '|' + x.title).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+    showStack();
+  } catch (e) {
+    body.innerHTML = `<h2 class="addh">Log a stack</h2><p class="djstatus err">${DJ_COPY[e?.code] || `${DJ_NAME} couldn't read that photo. Try again with more light, or closer.`}</p><div class="djrow" style="margin-top:14px"><button class="toggle" type="button" id="stackback">Back to the log</button></div>`;
+  }
+}
+function showStack(msg) {
+  const d = new Date(); const dateVal = $('#stackdate')?.value || dayKey(d); const timeVal = $('#stacktime')?.value || `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const found = stack.filter(x => x.r).length;
+  $('#logbody').innerHTML = `
+    <h2 class="addh">Log a stack</h2>
+    <p class="djblurb">${stack.length ? `${DJ_NAME} read ${stack.length} record${stack.length === 1 ? '' : 's'}${found < stack.length ? `, ${found} of them in the crate` : ''}. Untick anything that wasn't played, fix the time, then log them.` : `${DJ_NAME} couldn't make out any records in that photo.`}</p>
+    <ul class="stack">${stack.map((x, i) => x.r
+      ? `<li><input type="checkbox" data-i="${i}" ${x.on === false ? '' : 'checked'} aria-label="Log ${esc(x.r.t)}">${sleeve(x.r, 'sleeve')}<span><span class="lt">${esc(x.r.t)}</span><br><span class="la">${esc(x.r.a)} · ${x.r.y || ''}</span></span><span class="la">${playInfo(x.r)?.n ? `${playInfo(x.r).n}× so far` : 'first spin'}</span></li>`
+      : `<li class="miss"><span></span><span class="sleeve"><div class="ph"><div class="disc"></div></div></span><span><span class="lt">${esc(x.title || '?')}</span><br><span class="la">${esc(x.artist)} · not in the crate</span></span><span></span></li>`).join('')}</ul>
+    <div class="addrow" style="margin-top:12px"><input id="stackextra" type="text" placeholder="Add one ${DJ_NAME} missed (artist or title)" aria-label="Add a record by name"><button class="toggle" type="button" id="stackaddgo">Add</button></div>
+    <div class="stackwhen"><span class="lbl">Played on</span><input type="date" id="stackdate" value="${dateVal}" max="${dayKey(d)}"><span class="lbl">starting around</span><input type="time" id="stacktime" value="${timeVal}"><span class="djstatus">each one lands about 40 minutes after the last</span></div>
+    <div class="djrow" style="margin-top:16px"><button class="djgo" type="button" id="stackgo" ${found ? '' : 'disabled'}>Log ${found} spin${found === 1 ? '' : 's'}</button><button class="toggle" type="button" id="stackback">Back to the log</button><span class="djstatus" id="stackstatus">${msg || ''}</span></div>`;
+}
+$('#logdlg').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'stackextra') { e.preventDefault(); $('#stackaddgo').click(); } });
+$('#logdlg').addEventListener('change', (e) => {
+  const f = e.target.closest('#stackphoto'); if (f) { const file = f.files?.[0]; if (file) readStack(file); return; }
+  const cb = e.target.closest('.stack input[type="checkbox"]'); if (cb) { stack[Number(cb.dataset.i)].on = cb.checked; const n = stack.filter(x => x.r && x.on !== false).length; const go = $('#stackgo'); if (go) { go.disabled = !n; go.textContent = `Log ${n} spin${n === 1 ? '' : 's'}`; } }
+});
+$('#logdlg').addEventListener('click', async (e) => {
+  if (e.target.closest('#stackback')) { showLog(); return; }
+  if (e.target.closest('#stackaddgo')) { const q = $('#stackextra').value.trim(); if (!q) return; const r = matchStack('', q) || matchStack(q, ''); if (!r) { $('#stackstatus').textContent = `Nothing in the crate matches "${q}".`; return; } if (stack.some(x => x.r && rid(x.r) === rid(r))) { $('#stackstatus').textContent = `${r.t} is already in the list.`; return; } stack.push({ artist: r.a, title: r.t, r }); showStack(); return; }
+  const go = e.target.closest('#stackgo'); if (!go) return;
+  go.disabled = true;
+  const start = Date.parse(`${$('#stackdate').value}T${$('#stacktime').value || '20:00'}:00`); if (!start) { go.disabled = false; $('#stackstatus').textContent = 'Pick a date and time first.'; return; }
+  const todo = stack.filter(x => x.r && x.on !== false); let done = 0, skipped = 0, failed = 0;
+  for (let i = 0; i < todo.length; i++) {
+    const when = new Date(Math.min(start + i * 40 * 60000, Date.now())).toISOString();
+    try { await recordPlayAt(todo[i].r, when); done++; } catch (err) { if (err?.code === 'already') skipped++; else failed++; }
+  }
+  const bits = [`Logged ${done} spin${done === 1 ? '' : 's'}`, skipped ? `${skipped} already logged around then, skipped` : '', failed ? `${failed} failed` : ''].filter(Boolean).join(' · ');
+  stack = []; showLog(); $('#logbody').insertAdjacentHTML('afterbegin', `<p class="djstatus" style="margin:0 0 10px;font-weight:600">${bits}.</p>`);
+});
 async function logPlay(r, btn) {
   if (!dbNs) return;
   btn.disabled = true;
@@ -1343,6 +1486,7 @@ dlg.addEventListener('click', (e) => {
   const ul = e.target.closest('#unlogbtn'); if (ul) { ul.disabled = true; unlogLast(nav[cur]).then(() => open(cur)).catch((err) => { ul.disabled = false; $('#pstat').textContent = `Couldn't remove that (${err?.code || 'error'}).`; }); return; }
   const st = e.target.closest('.stars button'); if (st) { rate(nav[cur], Number(st.dataset.v)); return; }
   const pa = e.target.closest('#pulladd'); if (pa) { togglePull(nav[cur]); return; }
+  const bx = e.target.closest('.boxbtn'); if (bx) { const n = Number(bx.dataset.box); setBox(nav[cur], boxOf(nav[cur]) === n ? 0 : n); return; }
   const ns = e.target.closest('#notessave'); if (ns) { saveNotes(nav[cur]); return; }
   const lx = e.target.closest('#linerex button'); if (lx) { $('#linerq').value = lx.textContent; $('#linerform').requestSubmit(); }
 });
@@ -1400,7 +1544,7 @@ function showNowPlaying() {
   np.style.setProperty('--np-label', r.k || '#c2352b');
   $('#npcover').innerHTML = img ? `<img src="${esc(img)}" alt="" data-i="${r.i}" data-n="0">` : `<div class="ph"><div class="t">${esc(r.t)}</div><div class="a">${esc(r.a)}</div><div class="disc"></div></div>`;
   $('#nptitle').textContent = r.t; $('#npartist').textContent = r.a;
-  $('#npmeta').textContent = [r.y, r.g, r.l ? 'Live' : null, r.ed].filter(Boolean).join(' · ');
+  $('#npmeta').textContent = [r.y, r.g, r.l ? 'Live' : null, r.ed, boxOf(r) ? boxLabel(boxOf(r)) : null].filter(Boolean).join(' · ');
   $('#npstory').textContent = r.s || '';
   if (r.sd) { $('#nptracks').className = 'nptracks sided'; $('#nptracks').innerHTML = r.sd.map(side => `<li class="side"><h4><span>Side ${esc(side[0])}</span><span>${mmss(sideMs(side))}</span></h4><ol>${side[1].map(t => `<li><span>${esc(t[0])}</span><span>${mmss(t[1])}</span></li>`).join('')}</ol></li>`).join(''); }
   else { $('#nptracks').className = 'nptracks'; $('#nptracks').innerHTML = r.tr.map(t => `<li>${esc(t)}</li>`).join(''); }
@@ -1635,6 +1779,84 @@ async function rate(r, v) {
 }
 
 // ---- pull list (db: state/pull {items:[rid], done:[rid]}) ----
+// ---- boxes: which physical crate each record lives in. One shared doc, state/boxes = { map: {rid: n}, names: {n: label} } ----
+const boxCount = (n) => Object.values(boxes.map).filter(v => v === n).length;
+const unboxed = () => DATA.filter(r => !boxOf(r)).length;
+const anyBoxed = () => Object.keys(boxes.map).length > 0;
+async function saveBoxes() { if (!dbNs) return; try { await dbNs.doc('state/boxes').set({ ...boxes, at: new Date().toISOString() }); } catch (e) { console.warn('boxes save', e); const st = $('#pstat'); if (st) st.textContent = `Couldn't save the box (${e?.code || e?.name || 'error'}).`; } }
+function setBox(r, n) {
+  const id = rid(r);
+  if (n) boxes.map = { ...boxes.map, [id]: n }; else { const m = { ...boxes.map }; delete m[id]; boxes.map = m; }
+  renderBoxBits(r, true); saveBoxes();
+}
+// touch just one card instead of rebuilding the grid (shelving taps hundreds of times)
+function patchCard(r) {
+  const idx = current.indexOf(r); if (idx < 0) return;
+  const card = $(`#grid .card[data-idx="${idx}"]`); if (!card) return;
+  card.classList.toggle('inbox', !!shelving && boxOf(r) === shelving);
+  let badge = card.querySelector('.badge.box');
+  if (boxOf(r)) { if (!badge) { badge = document.createElement('span'); badge.className = 'badge box'; card.querySelector('.sleeve')?.appendChild(badge); } badge.textContent = `Box ${boxOf(r)}`; }
+  else if (badge) badge.remove();
+}
+function boxRowHtml(r) {
+  const cur = boxOf(r);
+  return `<div class="boxrow"><span class="lbl">Lives in</span>${Array.from({ length: BOX_COUNT }, (_, i) => i + 1).map(n => `<button class="boxbtn" type="button" data-box="${n}" aria-pressed="${cur === n}" title="${esc(boxLabel(n))}">${n}</button>`).join('')}${cur ? `<button class="boxbtn" type="button" data-box="${cur}" title="Take it out of its box">Unbox</button>` : ''}</div>`;
+}
+function renderBoxBits(r, light) {
+  const show = anyBoxed() || canWrite;
+  $('#boxsel').hidden = !show; $('#boxesbtn').hidden = !show || isGuest();
+  const sel = $('#boxsel'); const opts = [`<option value="">Any box</option>`].concat(Array.from({ length: BOX_COUNT }, (_, i) => i + 1).map(n => `<option value="${n}">${esc(boxLabel(n))}</option>`), [`<option value="none">Not boxed yet</option>`]).join('');
+  if (sel.innerHTML !== opts) sel.innerHTML = opts;
+  if (state.box && state.box !== 'none' && !boxCount(Number(state.box)) && !canWrite) state.box = '';
+  $('#boxeslabel').textContent = unboxed() && anyBoxed() ? `Boxes · ${unboxed()} left` : 'Boxes';
+  // the open record, if any
+  if (dlg.open && nav[cur]) {
+    const rr = nav[cur]; const row = $('.boxrow'); if (row) row.outerHTML = boxRowHtml(rr);
+    const tags = $('.gate .tags'); if (tags) { const old = $('#boxtag'); if (old) old.remove(); if (boxOf(rr)) { const t = document.createElement('span'); t.className = 'tag box'; t.id = 'boxtag'; t.textContent = boxLabel(boxOf(rr)); const ed = tags.querySelector('.tag.ed'); (ed || tags.querySelector('.tag:not(.year)') || tags.lastElementChild).insertAdjacentElement('afterend', t); } }
+  }
+  if (shelving) $('#shelfn').textContent = `${boxCount(shelving)} in it`;
+  if (boxdlg.open) showBoxes();
+  if (np.open && nav[cur]) $('#npmeta').textContent = [nav[cur].y, nav[cur].g, nav[cur].l ? 'Live' : null, nav[cur].ed, boxOf(nav[cur]) ? boxLabel(boxOf(nav[cur])) : null].filter(Boolean).join(' · ');
+  if (light && r && !state.box) patchCard(r); else render();
+}
+// shelving mode: pick a box, then tap covers to fill it
+function startShelving(n) {
+  shelving = n; document.documentElement.classList.add('shelving');
+  const sel = $('#shelfsel'); sel.innerHTML = Array.from({ length: BOX_COUNT }, (_, i) => i + 1).map(k => `<option value="${k}">${esc(boxLabel(k))}</option>`).join(''); sel.value = String(n);
+  $('#shelfbar').hidden = false; $('#shelfn').textContent = `${boxCount(n)} in it`;
+  if (boxdlg.open) boxdlg.close(); if (dlg.open) dlg.close();
+  render();
+}
+function stopShelving() { shelving = 0; document.documentElement.classList.remove('shelving'); $('#shelfbar').hidden = true; render(); }
+$('#shelfsel').addEventListener('change', (e) => { shelving = Number(e.target.value); $('#shelfn').textContent = `${boxCount(shelving)} in it`; render(); });
+$('#shelfdone').addEventListener('click', stopShelving);
+const boxdlg = $('#boxdlg');
+$('#boxesbtn').addEventListener('click', showBoxes);
+$('#closeboxes').addEventListener('click', () => boxdlg.close());
+$('#boxsel').addEventListener('change', (e) => { state.box = e.target.value; render(); });
+function showBoxes() {
+  const left = unboxed();
+  $('#boxbody').innerHTML = `
+    <h2 class="addh">Boxes</h2>
+    <p class="djblurb">${canWrite ? `Where each record physically lives. Name the boxes however you like (a genre, a shelf, a color), then shelve: pick a box and tap every cover that's in it.` : `Where each record physically lives. Find the box number on a record, then look for that box.`}</p>
+    <ul class="boxlist${canWrite ? '' : ' guest'}">${Array.from({ length: BOX_COUNT }, (_, i) => i + 1).filter(n => canWrite || boxCount(n)).map(n => `<li>
+      <span class="num"><small>Box</small>${n}</span>
+      ${canWrite ? `<input type="text" data-name="${n}" value="${esc(boxes.names[n] || '')}" placeholder="Name it (optional)" aria-label="Name for box ${n}" maxlength="28">` : `<span class="nm">${esc(boxes.names[n] || `Box ${n}`)}<small>${boxCount(n)} record${boxCount(n) === 1 ? '' : 's'}</small></span>`}
+      <span class="ops">${canWrite ? `<span class="n djstatus" style="align-self:center">${boxCount(n)}</span>` : ''}<button class="toggle" type="button" data-show="${n}">Show</button>${canWrite ? `<button class="toggle" type="button" data-shelve="${n}">Shelve</button>` : ''}</span>
+    </li>`).join('')}
+    ${left ? `<li><span class="num"><small></small>?</span><span class="nm">Not boxed yet<small>${left} record${left === 1 ? '' : 's'}</small></span><span class="ops"><button class="toggle" type="button" data-show="none">Show</button></span></li>` : ''}</ul>`;
+  if (!boxdlg.open) boxdlg.showModal();
+}
+boxdlg.addEventListener('click', (e) => {
+  if (e.target === boxdlg) { boxdlg.close(); return; }
+  const sh = e.target.closest('[data-show]'); if (sh) { state.box = sh.dataset.show; boxdlg.close(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  const sv = e.target.closest('[data-shelve]'); if (sv) { startShelving(Number(sv.dataset.shelve)); return; }
+});
+boxdlg.addEventListener('change', (e) => {
+  const inp = e.target.closest('input[data-name]'); if (!inp) return;
+  const n = Number(inp.dataset.name), v = inp.value.trim(); const names = { ...boxes.names }; if (v) names[n] = v; else delete names[n]; boxes.names = names; saveBoxes(); renderBoxBits();
+});
+
 let pull = { items: [], done: [] };
 const inPull = (r) => pull.items.includes(rid(r));
 async function savePull() { if (!dbNs) return; try { await dbNs.doc('state/pull').set({ ...pull, at: new Date().toISOString() }); } catch (e) { const st = $('#pstat'); if (st) st.textContent = `Couldn't save the pull list (${e?.code || e?.name || 'error'}: ${e?.message || ''})`; } }
@@ -1677,7 +1899,7 @@ function showPull() {
     <h2 class="addh">Tonight's pull</h2>
     <p class="djblurb">${canWrite ? `Records you've pulled for the evening, in play order. Start it and the Now Playing screen walks through them; each "Played it" ticks one off.` : `Records pulled for the evening, in play order. Open any record and tap "Add to pull list" to put it in; drag the arrows to reorder.`}</p>
     ${recs.length && canPull() ? `<div class="pullrow"><button class="djgo" type="button" data-op="start">Start the evening</button><button class="toggle" type="button" data-op="shuffle">Shuffle</button><button class="toggle" type="button" data-op="clear">Clear</button><span class="pulltotal">${recs.length} record${recs.length > 1 ? 's' : ''}${mins ? ` · about ${Math.round(mins)} min` : ''}</span></div>
-    <ol class="pulllist">${recs.map((r, i) => `<li class="${pull.done.includes(rid(r)) ? 'done' : ''}"><span class="n">${i + 1}</span>${sleeve(r, 'sleeve')}<span><span class="pt">${esc(r.t)}</span><br><span class="pa">${esc(r.a)} · ${r.y || ''}${pull.done.includes(rid(r)) ? ' · played' : ''}</span></span>
+    <ol class="pulllist">${recs.map((r, i) => `<li class="${pull.done.includes(rid(r)) ? 'done' : ''}"><span class="n">${i + 1}</span>${sleeve(r, 'sleeve')}<span><span class="pt">${esc(r.t)}</span><br><span class="pa">${esc(r.a)} · ${r.y || ''}${boxOf(r) ? ` · <b>${esc(boxLabel(boxOf(r)))}</b>` : ''}${pull.done.includes(rid(r)) ? ' · played' : ''}</span></span>
       <span class="ops">${canPull() ? `<button class="ib" type="button" data-op="up" data-rid="${esc(rid(r))}" aria-label="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 14 6-6 6 6"/></svg></button><button class="ib" type="button" data-op="down" data-rid="${esc(rid(r))}" aria-label="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m6 10 6 6 6-6"/></svg></button><button class="ib" type="button" data-op="open" data-rid="${esc(rid(r))}" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><button class="ib" type="button" data-op="remove" data-rid="${esc(rid(r))}" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : `<button class="ib" type="button" data-op="open" data-rid="${esc(rid(r))}" aria-label="Open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`}</span></li>`).join('')}</ol>`
     : canPull() ? `<p class="djstatus">Nothing pulled yet. Open a record and tap "Add to pull list", or let ${DJ_NAME} build one.</p><div class="pullrow" style="margin-top:12px"><button class="toggle" type="button" data-op="dj">Ask ${DJ_NAME} for a set</button></div>` : `<p class="djstatus">Nothing lined up yet.</p>`}`;
   if (!pulldlg.open) pulldlg.showModal();
@@ -1938,6 +2160,8 @@ function applyNewRows(rows) {
   dbNs.collection('ratings').onSnapshot((snap) => { for (const k of Object.keys(ratings)) delete ratings[k]; snap.docs.forEach(d => { if (d.exists) ratings[d.id] = d.data(); }); if (state.sort === 'rating' || state.faves || true) render(); }, (e) => {});
   $('#pullbtn').hidden = isGuest() || !canPull();
   $('#addbtn').hidden = isGuest() || !canWrite || !sampleFn;
+  try { dbNs.doc('state/boxes').onSnapshot((snap) => { const d = snap.exists ? snap.data() : null; const nb = { map: { ...(d?.map || {}) }, names: { ...(d?.names || {}) } }; if (JSON.stringify(nb) === JSON.stringify(boxes)) return; /* our own write echoing back */ boxes = nb; renderBoxBits(); }, (e) => {}); } catch (e) { console.warn('boxes subscription', e); }
+  renderBoxBits();
   dbNs.doc('state/pull').onSnapshot((snap) => { const d = snap.exists ? snap.data() : null; pull = { items: Array.isArray(d?.items) ? [...d.items] : [], done: Array.isArray(d?.done) ? [...d.done] : [] }; /* copies: snapshot data is frozen */ renderPullBits(); }, (e) => {});
   // the shared "now" pointer: what was logged most recently, from any device
 
@@ -2082,7 +2306,7 @@ function showLog() {
   const recent = entries.flatMap(([id, p]) => (p.h || [p.last]).map(iso => ({ id, iso }))).sort((a, b) => Date.parse(b.iso) - Date.parse(a.iso)).slice(0, 40);
   const most = entries.sort((a, b) => b[1].n - a[1].n || Date.parse(b[1].last) - Date.parse(a[1].last)).slice(0, 12);
   const row = (id, right) => { const r = byRid[id]; if (!r) return ''; return `<li><button class="row" type="button" data-rid="${esc(id)}">${sleeve(r, 'sleeve')}<span><span class="lt">${esc(r.t)}</span><br><span class="la">${esc(r.a)}</span></span><span class="ld">${right}</span></button></li>`; };
-  const streak = (() => { const days = new Set(recent.map(x => x.iso.slice(0, 10))); let n = 0; const d = new Date(); for (;;) { const k = d.toISOString().slice(0, 10); if (!days.has(k)) break; n++; d.setDate(d.getDate() - 1); } return n; })();
+  const streak = (() => { const days = new Set(recent.map(x => dayKey(x.iso))); let n = 0; const d = new Date(); if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1); /* a streak survives until tonight */ for (;;) { const k = dayKey(d); if (!days.has(k)) break; n++; d.setDate(d.getDate() - 1); } return n; })();
   $('#logbody').innerHTML = `
     <h2 class="addh">What's been spinning</h2>
     <p class="djblurb">${canWrite ? `Tap "Played it" on a record to log a spin. ${DJ_NAME} sees this too and will nudge you toward records that are gathering dust.` : `Every spin the house has logged, most recent first. Open any record for its own tally.`}</p>
@@ -2093,6 +2317,7 @@ function showLog() {
       <div><h3>Most played</h3><ul class="loglist">${most.map(([id, p]) => row(id, `${p.n}×`)).join('')}</ul>
         <p class="djstatus" style="margin-top:14px">Sort the crate by "Gathering dust" to see what hasn't had a turn.</p></div>
     </div>` : `<p class="djstatus">Nothing logged yet.${canWrite ? ' Open a record and tap Played it.' : ''}</p>`}
+    ${canWrite && sampleFn ? `<div class="stackrow"><label class="addphoto" id="stacklabel"><input type="file" id="stackphoto" accept="image/*" capture="environment" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span><b>Log a stack from a photo</b><br><small>Forgot to log a few? Snap the pile and ${DJ_NAME} will read the sleeves.</small></span></label></div>` : ''}
     ${canWrite ? `<div class="djrow" style="margin-top:22px"><button class="toggle" type="button" id="exportcsv">Export the collection (CSV)</button><span class="djstatus">Every record with year, genre, copies, rating, plays${uid ? ', and your private notes' : ''}. For insurance, or a spreadsheet.</span></div>` : ''}`;
   logdlg.showModal();
 }
