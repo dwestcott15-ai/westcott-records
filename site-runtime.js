@@ -11,12 +11,42 @@
   let ownerKey = null;
   const om = location.hash.match(/^#owner-([A-Za-z0-9_-]{16,})$/);
   if (om) { try { localStorage.setItem('wr-owner', om[1]); } catch (e) {} history.replaceState(null, '', location.pathname + location.search); }
-  if (location.hash === '#signout') { try { localStorage.removeItem('wr-owner'); } catch (e) {} history.replaceState(null, '', location.pathname); }
+  if (location.hash === '#signout') { try { localStorage.removeItem('wr-owner'); localStorage.removeItem('wr-guest'); } catch (e) {} history.replaceState(null, '', location.pathname); }
   try { ownerKey = localStorage.getItem('wr-owner'); } catch (e) {}
-  const hdrs = () => (ownerKey ? { 'x-owner-key': ownerKey } : {});
+  // ---- guest password: #guest-<word> on the QR link, or typed at the door; stored on this device
+  let guestKey = null;
+  const gm = location.hash.match(/^#guest-(.+)$/);
+  if (gm) { try { localStorage.setItem('wr-guest', decodeURIComponent(gm[1])); } catch (e) {} history.replaceState(null, '', location.pathname + location.search); }
+  try { guestKey = localStorage.getItem('wr-guest'); } catch (e) {}
+  const hdrs = () => (ownerKey ? { 'x-owner-key': ownerKey } : guestKey ? { 'x-guest-key': guestKey } : {});
 
   if (!window.supabase) { console.warn('supabase-js did not load; the site runs read-only'); return; }
   const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, { global: { headers: hdrs() }, realtime: { params: { eventsPerSecond: 5 } } });
+
+  // ---- the door: without a key the page stays locked
+  let guestVerified = null;
+  async function verifyGuest() {
+    if (guestVerified !== null) return guestVerified;
+    if (!guestKey) return (guestVerified = false);
+    try { const { data, error } = await sb.rpc('check_guest', { key: guestKey }); guestVerified = !error && data === true; } catch (e) { guestVerified = false; }
+    if (!guestVerified) { try { localStorage.removeItem('wr-guest'); } catch (e) {} guestKey = null; }
+    return guestVerified;
+  }
+  function showGate(msg) {
+    if (document.getElementById('wrgate')) return;
+    const g = document.createElement('div'); g.id = 'wrgate';
+    g.innerHTML = `<style>#wrgate{position:fixed;inset:0;z-index:100000;background:#131415;color:#ebe8e0;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;font-family:"Barlow","Helvetica Neue",Arial,sans-serif;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));box-sizing:border-box}#wrgate .box{max-width:420px;width:100%;min-width:0;text-align:center}#wrgate h1{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif;text-transform:uppercase;font-size:40px;line-height:.95;margin:0 0 10px}#wrgate p{color:#9b9890;margin:0 0 22px;line-height:1.5}#wrgate form{display:flex;gap:8px}#wrgate input{flex:1;min-width:0;font:inherit;font-size:17px;padding:12px 14px;border-radius:6px;border:1px solid #2f3236;background:#1c1e20;color:#ebe8e0}#wrgate button{font:inherit;font-weight:600;padding:12px 18px;border-radius:6px;border:0;background:#e24c40;color:#fff;cursor:pointer}#wrgate .err{color:#e24c40;margin-top:12px;min-height:1.4em}#wrgate .disc{width:84px;height:84px;border-radius:50%;margin:0 auto 22px;background:radial-gradient(circle,#e24c40 0 18%,#ebe8e0 19% 21%,transparent 22%),repeating-radial-gradient(circle,#1a1a1a 0 2px,#303030 2px 4px)}</style>
+      <div class="box"><div class="disc"></div><h1>The Westcott Collection</h1><p>This crate is private. Scan the code at the house, or type the password.</p>
+      <form><input type="password" autocomplete="off" autocapitalize="none" placeholder="Password" aria-label="Password"><button type="submit">Open</button></form><div class="err">${msg || ''}</div></div>`;
+    document.body.appendChild(g);
+    g.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault(); const v = g.querySelector('input').value.trim(); if (!v) return;
+      const { data } = await sb.rpc('check_guest', { key: v });
+      if (data === true) { try { localStorage.setItem('wr-guest', v); } catch (e2) {} location.reload(); }
+      else g.querySelector('.err').textContent = 'That isn\'t it. Ask whoever owns the records.';
+    });
+    setTimeout(() => g.querySelector('input').focus(), 50);
+  }
 
   let ownerVerified = null;
   async function verifyOwner() {
@@ -42,7 +72,8 @@
     channel = sb.channel('docs-live').on('postgres_changes', { event: '*', schema: 'public', table: 'docs' }, (payload) => {
       const coll = payload.new?.coll || payload.old?.coll; if (!coll) return;
       listeners.forEach(l => { if (l.coll === coll) l.refresh(); });
-    }).subscribe((status) => { if (status !== 'SUBSCRIBED' && !pollTimer) pollTimer = setInterval(() => listeners.forEach(l => l.refresh()), 20000); });
+    }).subscribe(() => {});
+    if (!pollTimer) pollTimer = setInterval(() => { if (document.visibilityState === 'visible') listeners.forEach(l => l.refresh()); }, ownerVerified ? 60000 : 25000);
   }
   async function fetchColl(coll, order) {
     let q = sb.from('docs').select('id,data').eq('coll', coll);
@@ -71,7 +102,9 @@
     const ref = {
       id, path,
       async get() { const { data, error } = await sb.from('docs').select('id,data').eq('coll', coll).eq('id', id).maybeSingle(); if (error) throw mapErr(error); return data ? docSnap(data) : { id, exists: false, data: () => undefined }; },
-      async set(body) { const { error } = await sb.from('docs').upsert({ coll, id, data: body, updated_at: new Date().toISOString() }, { onConflict: 'coll,id' }); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
+      async set(body) {
+        if (path === 'state/pull' && !ownerVerified) { const { error } = await sb.rpc('pull_request', { rids: Array.isArray(body.items) ? body.items : [] }); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); return; }
+        const { error } = await sb.from('docs').upsert({ coll, id, data: body, updated_at: new Date().toISOString() }, { onConflict: 'coll,id' }); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
       async update(partial) { const cur = await ref.get(); await ref.set({ ...(cur.exists ? cur.data() : {}), ...partial }); },
       async delete() { const { error } = await sb.from('docs').delete().eq('coll', coll).eq('id', id); if (error) throw mapErr(error); listeners.forEach(l => { if (l.coll === coll) l.refresh(); }); },
       collection(sub) { return collection(path + '/' + sub); },
@@ -114,9 +147,14 @@
   };
   window.__blobUrl = (id) => /^https?:/.test(id) ? id : `${SUPA_URL}/storage/v1/object/public/${BUCKET}/${id}`;
 
-  const user = { can: async (perm) => perm === 'data.write' ? await verifyOwner() : true, id: async () => (await verifyOwner()) ? 'owner' : null, isOwner: () => !!ownerVerified, canEdit: () => !!ownerVerified };
+  (async () => {
+    const owner = await verifyOwner();
+    if (!owner) { const g = await verifyGuest(); if (!g) showGate(); }
+    else { try { const { data } = await sb.from('docs').select('data').eq('coll', 'data/users/owner').eq('id', 'settings').maybeSingle(); if (data?.data?.guestKey) window.__guestUrl = 'https://westcottrecords.com/#guest-' + encodeURIComponent(data.data.guestKey); } catch (e) {} }
+  })();
+  const user = { can: async (perm) => perm === 'data.write' ? await verifyOwner() : perm === 'pull.request' ? (await verifyOwner()) || (await verifyGuest()) : true, id: async () => (await verifyOwner()) ? 'owner' : null, isOwner: () => !!ownerVerified, canEdit: () => !!ownerVerified };
   const downloads = { save: async ({ filename, data }) => { const blob = data instanceof Blob ? data : new Blob([data], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); return { status: 'saved' }; } };
 
   window.claude = { use: async (name) => ({ db, sample, assets, user, downloads })[name] || null };
-  window.__wr = { signOut() { try { localStorage.removeItem('wr-owner'); } catch (e) {} location.reload(); } };
+  window.__wr = { signOut() { try { localStorage.removeItem('wr-owner'); localStorage.removeItem('wr-guest'); } catch (e) {} location.reload(); } };
 })();
